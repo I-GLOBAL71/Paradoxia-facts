@@ -30,7 +30,7 @@ export async function fetchParanormalFacts(lang: 'fr' | 'en'): Promise<(Omit<Par
     ? "['Fantôme', 'Sorcellerie', 'Créature', 'OVNI', 'Phénomène Surnaturel']"
     : "['Ghost', 'Witchcraft', 'Cryptid', 'UFO', 'Supernatural Phenomenon']";
 
-  const prompt = `Generate a list of 5 unique, real-world paranormal or witchcraft facts in ${lang === 'fr' ? 'FRENCH' : 'ENGLISH'}. For each fact, provide: a unique id (string), a catchy title, a short summary (max 30 words), a detailed explanation (150-200 words), a category from ${categories}, a URL to a relevant, atmospheric, royalty-free stock video (from pexels.com), and a descriptive, detailed prompt (string, max 25 words) for an image generation model to create a spooky, atmospheric cover image that matches the fact. Call this property 'imagePrompt'. Ensure the generated content is unique each time this prompt is called. The entire response must be in ${lang === 'fr' ? 'FRENCH' : 'ENGLISH'}.`;
+  const prompt = `Generate a list of 5 unique, real-world paranormal or witchcraft facts in ${lang === 'fr' ? 'FRENCH' : 'ENGLISH'}. For each fact, provide: a unique id (string), a catchy title, a short summary (max 30 words), a detailed explanation (150-200 words), a category from ${categories}, a URL to a relevant, atmospheric YouTube video that can be embedded (e.g., https://www.youtube.com/watch?v=VIDEO_ID). The video should be a short documentary clip, found footage, or something that enhances the spooky atmosphere, not a full movie or a vlogger talking to the camera. Also provide a descriptive, detailed prompt (string, max 25 words) for an image generation model to create a spooky, atmospheric, photorealistic cover image that matches the fact. The prompt should describe a scene, not abstract concepts. Call this property 'imagePrompt'. Ensure the generated content is unique each time this prompt is called. The entire response must be in ${lang === 'fr' ? 'FRENCH' : 'ENGLISH'}.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -58,29 +58,26 @@ export async function generateImage(prompt: string): Promise<string> {
     }
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: {
-                parts: [{ text: prompt }],
-            },
+        const response = await ai.models.generateImages({
+            model: 'imagen-4.0-generate-001',
+            prompt: prompt,
             config: {
-                responseModalities: [Modality.IMAGE],
+              numberOfImages: 1,
+              outputMimeType: 'image/png',
+              aspectRatio: '3:4', // Match card aspect ratio
             },
         });
         
-        const candidate = response.candidates?.[0];
-        if (candidate?.content?.parts) {
-            for (const part of candidate.content.parts) {
-                if (part.inlineData) {
-                    return part.inlineData.data; // This is the base64 string
-                }
-            }
+        const base64ImageBytes = response.generatedImages?.[0]?.image?.imageBytes;
+
+        if (!base64ImageBytes) {
+            throw new Error("No image data received from API.");
         }
         
-        throw new Error("No image data received from API.");
+        return base64ImageBytes;
     } catch (error) {
-        console.error("Error generating image from Gemini:", error);
-        throw new Error("Failed to generate image from Gemini API.");
+        console.error("Error generating image with Imagen:", error);
+        throw new Error("Failed to generate image from Imagen API.");
     }
 }
 

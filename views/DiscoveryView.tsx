@@ -90,7 +90,8 @@ const DiscoveryView: React.FC<DiscoveryViewProps> = ({ facts, onSelectFact, onLo
         {facts.length > 0 ? facts.map((fact, index) => {
           const stackPosition = currentIndex - index;
 
-          const getCardStyle = () => {
+          // Fix: Add explicit React.CSSProperties return type to prevent type widening on 'pointerEvents'.
+          const getCardStyle = (): React.CSSProperties => {
             if (stackPosition < 0) {
               return { zIndex: 0, opacity: 0, pointerEvents: 'none', transform: 'scale(0.8)' };
             }
