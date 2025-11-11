@@ -2,7 +2,7 @@ import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { ParanormalFact } from '../types';
 
 // This function now fetches fact data including a prompt for image generation.
-export async function fetchParanormalFacts(lang: 'fr' | 'en'): Promise<(Omit<ParanormalFact, 'imageUrl'> & { imagePrompt: string })[]> {
+export async function fetchParanormalFacts(lang: 'fr' | 'en'): Promise<ParanormalFact[]> {
   if (!process.env.API_KEY) {
     throw new Error("API_KEY environment variable is not set.");
   }
@@ -20,7 +20,7 @@ export async function fetchParanormalFacts(lang: 'fr' | 'en'): Promise<(Omit<Par
         details: { type: Type.STRING },
         category: { type: Type.STRING },
         videoUrl: { type: Type.STRING },
-        imagePrompt: { type: Type.STRING }, // Changed from imageUrl
+        imagePrompt: { type: Type.STRING },
       },
       required: ['id', 'title', 'summary', 'details', 'category', 'videoUrl', 'imagePrompt'],
     },

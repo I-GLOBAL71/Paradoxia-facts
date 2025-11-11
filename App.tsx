@@ -92,6 +92,31 @@ const App: React.FC = () => {
     setIsMuted(prev => !prev);
   };
 
+  const generateAndSetImage = useCallback(async (factId: string) => {
+    const currentFact = facts.find(f => f.id === factId);
+
+    if (!currentFact || !currentFact.imagePrompt || currentFact.imageUrl) {
+      return; // Already has an image, a prompt is missing, or is already being generated
+    }
+
+    try {
+      const base64Image = await generateImage(currentFact.imagePrompt);
+      const imageUrl = `data:image/png;base64,${base64Image}`;
+      
+      setFacts(prevFacts =>
+        prevFacts.map(f =>
+          f.id === factId
+            ? { ...f, imageUrl, imagePrompt: undefined } // Set image and remove prompt
+            : f
+        )
+      );
+    } catch (imageError) {
+      console.error(`Failed to generate image for fact "${currentFact.title}":`, imageError);
+      // Optionally remove the fact if image generation fails, to avoid a broken card
+      setFacts(prevFacts => prevFacts.filter(f => f.id !== factId));
+    }
+  }, [facts]);
+
   const loadFacts = useCallback(async (langToLoad: 'en' | 'fr', append: boolean) => {
     setIsLoading(true);
     setError(null);
@@ -102,34 +127,11 @@ const App: React.FC = () => {
       setLoadingStatus(t('loadingFacts'));
       const factsData = await fetchParanormalFacts(langToLoad);
       
-      setLoadingStatus(t('loadingImages'));
-      
-      for (const factData of factsData) {
-        try {
-          const base64Image = await generateImage(factData.imagePrompt);
-          const newFact: ParanormalFact = {
-            id: factData.id,
-            title: factData.title,
-            summary: factData.summary,
-            details: factData.details,
-            category: factData.category,
-            videoUrl: factData.videoUrl,
-            imageUrl: `data:image/png;base64,${base64Image}`,
-          };
-          
-          setFacts(prevFacts => {
-            // Prevent adding duplicates
-            if (prevFacts.some(pf => pf.id === newFact.id)) {
-              return prevFacts;
-            }
-            return [...prevFacts, newFact];
-          });
-
-        } catch (imageError) {
-          console.error(`Failed to generate image for fact "${factData.title}":`, imageError);
-          // Silently skip facts that fail image generation
-        }
-      }
+      setFacts(prevFacts => {
+          const existingIds = new Set(prevFacts.map(f => f.id));
+          const newFacts = factsData.filter(f => !existingIds.has(f.id));
+          return append ? [...prevFacts, ...newFacts] : newFacts;
+      });
 
     } catch (err) {
       setError(t('errorFetch'));
@@ -143,6 +145,16 @@ const App: React.FC = () => {
   useEffect(() => {
     loadFacts(language, false);
   }, [language, loadFacts]);
+
+  // Effect to trigger image generation for the top card when facts are loaded
+  useEffect(() => {
+      if (facts.length > 0) {
+          const topCard = facts[facts.length - 1];
+          if (topCard && !topCard.imageUrl && topCard.imagePrompt) {
+              generateAndSetImage(topCard.id);
+          }
+      }
+  }, [facts, generateAndSetImage]);
 
   const handleLanguageToggle = () => {
     setLanguage(prev => prev === 'en' ? 'fr' : 'en');
@@ -189,7 +201,7 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     if (isLoading && facts.length === 0) {
-      return <Loader message={loadingStatus} />;
+      return <Loader message={loadingStatus || t('loadingFacts')} />;
     }
 
     if (error) {
@@ -211,7 +223,7 @@ const App: React.FC = () => {
       return <FavoritesView ref={favoritesViewRef} favorites={favorites} onSelectFact={handleSelectFact} onFilteredCountChange={setFilteredFavoritesCount} t={t} />
     }
     
-    return <DiscoveryView key={language} facts={facts} onSelectFact={handleSelectFact} onLoadMore={() => loadFacts(language, true)} isLoading={isLoading} t={t} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} />;
+    return <DiscoveryView key={language} facts={facts} onSelectFact={handleSelectFact} onLoadMore={() => loadFacts(language, true)} isLoading={isLoading} t={t} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} onPreloadFact={generateAndSetImage} />;
   };
 
   return (

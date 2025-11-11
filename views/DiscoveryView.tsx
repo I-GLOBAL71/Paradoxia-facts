@@ -7,6 +7,7 @@ import SparkleIcon from '../components/icons/SparkleIcon';
 import StarIcon from '../components/icons/StarIcon';
 import StarSolidIcon from '../components/icons/StarSolidIcon';
 import { TranslationKey } from '../utils/i18n';
+import Loader from '../components/Loader';
 
 interface DiscoveryViewProps {
   facts: ParanormalFact[];
@@ -16,9 +17,10 @@ interface DiscoveryViewProps {
   t: (key: TranslationKey, ...args: any[]) => string;
   favoriteIds: Set<string>;
   onToggleFavorite: (fact: ParanormalFact) => void;
+  onPreloadFact: (factId: string) => void;
 }
 
-const DiscoveryView: React.FC<DiscoveryViewProps> = ({ facts, onSelectFact, onLoadMore, isLoading, t, favoriteIds, onToggleFavorite }) => {
+const DiscoveryView: React.FC<DiscoveryViewProps> = ({ facts, onSelectFact, onLoadMore, isLoading, t, favoriteIds, onToggleFavorite, onPreloadFact }) => {
   const [currentIndex, setCurrentIndex] = useState(facts.length - 1);
   const currentIndexRef = useRef(currentIndex);
 
@@ -45,6 +47,12 @@ const DiscoveryView: React.FC<DiscoveryViewProps> = ({ facts, onSelectFact, onLo
 
   const swiped = (index: number) => {
     updateCurrentIndex(index - 1);
+    
+    // Preload image for the card that will become visible next
+    const preloadIndex = index - 2;
+    if (preloadIndex >= 0 && facts[preloadIndex]) {
+        onPreloadFact(facts[preloadIndex].id);
+    }
   };
 
   const outOfFrame = (id: string, idx: number) => {
@@ -119,13 +127,14 @@ const DiscoveryView: React.FC<DiscoveryViewProps> = ({ facts, onSelectFact, onLo
             >
               <div
                 onClick={() => onSelectFact(fact)}
-                className="relative w-[90vw] max-w-sm h-[70vh] max-h-[600px] bg-cover bg-center rounded-2xl shadow-2xl overflow-hidden cursor-pointer group origin-bottom"
+                className="relative w-[90vw] max-w-sm h-[70vh] max-h-[600px] bg-cover bg-center rounded-2xl shadow-2xl overflow-hidden cursor-pointer group origin-bottom bg-slate-800"
                 style={{
-                  backgroundImage: `url(${fact.imageUrl})`,
+                  backgroundImage: fact.imageUrl ? `url(${fact.imageUrl})` : 'none',
                   ...getCardStyle(),
                 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                {!fact.imageUrl && <div className="flex w-full h-full justify-center items-center"><Loader /></div>}
+                {fact.imageUrl && <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>}
                 
                 <button
                   onClick={(e) => handleShare(e, fact)}

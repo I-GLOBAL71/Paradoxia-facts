@@ -8,6 +8,7 @@ import { generateSpeech } from '../services/geminiService';
 import { decode, decodeAudioData } from '../utils/audio';
 import SpeakerWaveIcon from '../components/icons/SpeakerWaveIcon';
 import PauseIcon from '../components/icons/PauseIcon';
+import Loader from '../components/Loader';
 
 interface DetailViewProps {
   fact: ParanormalFact;
@@ -161,8 +162,12 @@ const DetailView: React.FC<DetailViewProps> = ({ fact, onBack, isFavorite, onTog
             title={fact.title}
             sandbox="allow-scripts allow-same-origin"
           ></iframe>
-        ) : (
+        ) : fact.imageUrl ? (
           <img src={fact.imageUrl} alt={fact.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-slate-800">
+            <Loader />
+          </div>
         )}
 
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent"></div>

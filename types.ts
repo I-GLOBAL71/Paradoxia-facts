@@ -6,6 +6,7 @@ export interface ParanormalFact {
   category: 
     | 'Ghost' | 'Witchcraft' | 'Cryptid' | 'UFO' | 'Supernatural Phenomenon'
     | 'Fantôme' | 'Sorcellerie' | 'Créature' | 'OVNI' | 'Phénomène Surnaturel';
-  videoUrl: string; // Using a direct URL for simplicity instead of a prompt
-  imageUrl: string; // Using a direct URL for simplicity
+  videoUrl: string;
+  imageUrl?: string;
+  imagePrompt?: string;
 }
